@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Prototipo SGB - Biblioteca Luz del Saber</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans min-h-screen">
+
+<!-- Barra superior -->
+<nav class="bg-blue-900 text-white p-4 shadow-lg sticky top-0 z-50">
+    <div class="container mx-auto flex justify-between items-center">
+        <h1 class="text-xl md:text-2xl font-bold">
+            <i class="fas fa-book-reader mr-2"></i>SGB Luz del Saber
+        </h1>
+        <div class="flex items-center gap-3">
+            <div class="text-right text-xs hidden sm:block">
+                <p>{{ usuario.get_full_name|default:usuario.username }}</p>
+                <p class="opacity-75">{{ rol }}</p>
+            </div>
+            <a href="{% url 'logout' %}"
+               class="text-xs bg-red-600 hover:bg-red-700 px-3 py-1 rounded-full">
+                Cerrar sesión
+            </a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Columna izquierda: ingresar libros + simulador -->
+    <div class="space-y-6">
+
+        <!-- Mensajes Django -->
+        {% if messages %}
+            <div class="space-y-1">
+                {% for message in messages %}
+                    <p class="text-sm p-2 rounded
+                       {% if message.tags == 'success' %}
+                            bg-green-100 text-green-700
+                       {% elif message.tags == 'warning' %}
+                            bg-yellow-100 text-yellow-700
+                       {% elif message.tags == 'error' %}
+                            bg-red-100 text-red-700
+                       {% else %}
+                            bg-blue-100 text-blue-700
+                       {% endif %}">
+                        {{ message }}
+                    </p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- 1. Ingresar libro nuevo -->
+        <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-indigo-600">
+            <h2 class="text-lg font-bold mb-4 text-indigo-900 flex items-center">
+                <span class="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm">
+                    1
+                </span>
+                Ingresar Libro Nuevo
+            </h2>
+            <form id="bookForm" class="space-y-4" novalidate>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Título del Libro
+                    </label>
+                    <input type="text" id="newBookTitle" placeholder="Ej: El señor de los anillos"
+                           class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Autor
+                    </label>
+                    <input type="text" id="newBookAuthor" placeholder="Ej: J. R. R. Tolkien"
+                           class="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-indigo-500 focus:outline-none transition" required>
+                </div>
+                <p class="text-xs text-gray-400">
+                    Los libros ingresados se agregan al inventario y quedan disponibles para préstamo.
+                </p>
+                <button type="submit"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow transition transform active:scale-95 flex justify-center items-center gap-2">
+                    <i class="fas fa-plus-circle"></i> Guardar Libro
+                </button>
+            </form>
+        </div>
+
+        <!-- 2. Simulador de fecha actual (solo para pruebas) -->
+        <div class="bg-yellow-50 p-5 rounded-xl border-2 border-dashed border-yellow-300 relative">
+            <div class="absolute -top-3 left-4 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded">
+                Simulación
+            </div>
+            <h3 class="font-bold text-yellow-800 mb-2 flex items-center gap-2">
+                <i class="fas fa-history"></i> Simulador de Fecha Actual
+            </h3>
+            <p class="text-xs text-yellow-700 mb-3">
+                Esta fecha solo se usa para pruebas del cálculo de multas. En producción se utilizaría la fecha del sistema.
+            </p>
+            <input type="date" id="currentDateSim"
+                   class="w-full border border-yellow-400 p-2 rounded bg-white text-yellow-900 font-bold">
+        </div>
+    </div>
+
+    <!-- Columna derecha: préstamos, solicitudes y estado inventario -->
+    <div class="space-y-6">
+
+        <!-- 3. Préstamos activos (demo con JS) -->
+        <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-green-500 min-h-[300px]">
+            <h2 class="text-lg font-bold mb-4 text-green-900 flex items-center justify-between">
+                <span class="flex items-center">
+                    <span class="bg-green-100 text-green-600 w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm">
+                        3
+                    </span>
+                    Préstamos Activos
+                </span>
+                <span id="loanCount" class="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded">0 Activos</span>
+            </h2>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-tl-lg">Libro</th>
+                            <th class="p-3">Socio</th>
+                            <th class="p-3">Vence</th>
+                            <th class="p-3 rounded-tr-lg text-center">Gestión</th>
+                        </tr>
+                    </thead>
+                    <tbody id="loansTableBody" class="divide-y divide-gray-100">
+                    </tbody>
+                </table>
+                <div id="emptyState"
+                     class="hidden flex flex-col items-center justify-center py-10 text-gray-400">
+                    <i class="fas fa-folder-open text-4xl mb-2 opacity-50"></i>
+                    <p>No hay préstamos registrados</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Solicitudes de préstamo que llegan desde el portal de usuarios -->
+        <div class="bg-white p-6 rounded-xl shadow-md border-t-4 border-purple-600">
+            <h2 class="text-lg font-bold mb-4 text-purple-900 flex items-center">
+                <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-2 text-sm">
+                    4
+                </span>
+                Solicitudes de préstamo de usuarios
+            </h2>
+
+            {% if solicitudes %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+                            <tr>
+                                <th class="p-2">Socio</th>
+                                <th class="p-2">Libro solicitado</th>
+                                <th class="p-2">Fecha</th>
+                                <th class="p-2 text-center">Estado / Gestión</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            {% for s in solicitudes %}
+                                <tr>
+                                    <td class="p-2">
+                                        {{ s.socio.user.get_full_name|default:s.socio.user.username }}
+                                    </td>
+                                    <td class="p-2 font-medium">
+                                        {{ s.titulo_libro }}
+                                    </td>
+                                    <td class="p-2 text-xs text-gray-500">
+                                        {{ s.fecha_solicitud|date:"d/m/Y H:i" }}
+                                    </td>
+                                    <td class="p-2 text-center space-y-2">
+                                        <!-- Estado visual -->
+                                        <span class="text-[10px] uppercase px-2 py-1 rounded-full block
+                                            {% if s.estado == 'pendiente' %}
+                                                bg-yellow-100 text-yellow-700
+                                            {% elif s.estado == 'aprobado' %}
+                                                bg-green-100 text-green-700
+                                            {% else %}
+                                                bg-red-100 text-red-700
+                                            {% endif %}">
+                                            {% if s.estado == 'pendiente' %}
+                                                En revisión
+                                            {% elif s.estado == 'aprobado' %}
+                                                Préstamo activo
+                                            {% else %}
+                                                Rechazada
+                                            {% endif %}
+                                        </span>
+
+                                        <!-- Botones solo si está pendiente -->
+                                        {% if s.estado == 'pendiente' %}
+                                            <div class="flex gap-1 justify-center mt-2">
+                                                <form method="post"
+                                                      action="{% url 'gestionar_solicitud' s.id 'aprobar' %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            class="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-full flex items-center gap-1">
+                                                        <i class="fas fa-check"></i> Aprobar
+                                                    </button>
+                                                </form>
+
+                                                <form method="post"
+                                                      action="{% url 'gestionar_solicitud' s.id 'rechazar' %}">
+                                                    {% csrf_token %}
+                                                    <button type="submit"
+                                                            class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-full flex items-center gap-1">
+                                                        <i class="fas fa-times"></i> Rechazar
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-xs text-gray-500">
+                    No hay solicitudes pendientes de los usuarios.
+                </p>
+            {% endif %}
+        </div>
+
+        <!-- 5. Estado del inventario -->
+        <div class="bg-white p-6 rounded-xl shadow-md">
+            <h2 class="text-lg font-bold mb-4 text-gray-800">Estado del Inventario</h2>
+            <div class="h-48 overflow-y-auto pr-2 space-y-2" id="booksList">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de multa -->
+<div id="fineModal"
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden transform transition-all scale-100">
+        <div class="bg-red-500 p-4 text-white text-center">
+            <i class="fas fa-exclamation-triangle text-4xl mb-2 animate-bounce"></i>
+            <h2 class="text-2xl font-bold uppercase tracking-wider">¡Atraso Detectado!</h2>
+        </div>
+
+        <div class="p-6 space-y-4">
+            <p class="text-center text-gray-600">El socio devuelve el libro fuera del plazo.</p>
+
+            <div class="bg-red-50 p-4 rounded-lg border border-red-100 text-sm space-y-2">
+                <div class="flex justify-between">
+                    <span>Fecha Pactada:</span>
+                    <span id="modalExpected" class="font-mono font-bold">--</span>
+                </div>
+                <div class="flex justify-between">
+                    <span>Fecha Real:</span>
+                    <span id="modalActual" class="font-mono font-bold text-red-600">--</span>
+                </div>
+                <div class="flex justify-between border-t border-red-200 pt-2 mt-2">
+                    <span>Días de multa:</span>
+                    <span id="modalDays" class="font-bold text-red-600">0</span>
+                </div>
+            </div>
+
+            <div class="text-center py-2">
+                <p class="text-xs text-gray-500 uppercase">Total a Pagar</p>
+                <p id="modalTotal" class="text-4xl font-extrabold text-red-600">$0</p>
+            </div>
+
+            <button onclick="closeModal()"
+                    class="w-full bg-gray-900 text-white py-3 rounded-lg font-bold hover:bg-black transition shadow-lg">
+                Cobrar Multa y Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Clave para compartir libros con el panel de usuario
+    const BOOKS_KEY = "sgb_books_demo";
+
+    // Libros base
+    const defaultBooks = [
+        { id: 1, title: "Cien Años de Soledad", author: "Gabo", status: "Disponible" },
+        { id: 2, title: "Clean Code", author: "R. Martin", status: "Disponible" },
+        { id: 3, title: "El Principito", author: "Saint-Exupéry", status: "Prestado" },
+        { id: 4, title: "1984", author: "Orwell", status: "Disponible" },
+        { id: 5, title: "Don Quijote", author: "Cervantes", status: "Disponible" }
+    ];
+
+    let books = [];
+
+    function loadBooks() {
+        const saved = localStorage.getItem(BOOKS_KEY);
+        if (saved) {
+            try {
+                books = JSON.parse(saved);
+            } catch (e) {
+                books = [...defaultBooks];
+            }
+        } else {
+            books = [...defaultBooks];
+        }
+    }
+
+    function saveBooks() {
+        localStorage.setItem(BOOKS_KEY, JSON.stringify(books));
+    }
+
+    // Préstamos de demo
+    let loans = [
+        { id: 101, bookId: 3, user: "Ana Gómez", dueDate: "2023-10-01" }
+    ];
+
+    const FINE_VAL = 500;
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(text).replace(/[&<>"']/g, m => map[m]);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadBooks();
+        renderTable();
+        renderInventory();
+
+        const simInput = document.getElementById('currentDateSim');
+        if (simInput) simInput.valueAsDate = new Date();
+
+        const bookForm = document.getElementById('bookForm');
+        bookForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const titleInput = document.getElementById('newBookTitle');
+            const authorInput = document.getElementById('newBookAuthor');
+
+            const title = titleInput.value.trim();
+            const author = authorInput.value.trim();
+
+            if (!title) {
+                alert("Ingrese el título del libro.");
+                return;
+            }
+            if (!author) {
+                alert("Ingrese el nombre del autor.");
+                return;
+            }
+
+            const newId = books.length > 0
+                ? Math.max(...books.map(b => b.id)) + 1
+                : 1;
+
+            books.push({
+                id: newId,
+                title: title,
+                author: author,
+                status: "Disponible"
+            });
+
+            saveBooks();
+            bookForm.reset();
+            renderInventory();
+
+            const btn = e.submitter;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Libro agregado';
+            btn.classList.add('bg-green-600');
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.classList.remove('bg-green-600');
+            }, 2000);
+        });
+    });
+
+    function renderInventory() {
+        const list = document.getElementById('booksList');
+        list.innerHTML = '';
+        books.forEach(b => {
+            const div = document.createElement('div');
+            const color = b.status === 'Disponible' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+            div.className = "flex justify-between items-center p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition";
+            div.innerHTML = `
+                <div class="flex flex-col">
+                    <span class="font-bold text-sm text-gray-700">${escapeHtml(b.title)}</span>
+                    <span class="text-xs text-gray-500">${escapeHtml(b.author)}</span>
+                </div>
+                <span class="text-xs px-2 py-1 rounded font-bold ${color}">${escapeHtml(b.status)}</span>
+            `;
+            list.appendChild(div);
+        });
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('loansTableBody');
+        const empty = document.getElementById('emptyState');
+        const count = document.getElementById('loanCount');
+
+        tbody.innerHTML = '';
+        count.innerText = `${loans.length} Activos`;
+
+        if (loans.length === 0) {
+            empty.classList.remove('hidden');
+        } else {
+            empty.classList.add('hidden');
+            loans.forEach(l => {
+                const b = books.find(bk => bk.id == l.bookId);
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition border-b border-gray-100";
+                tr.innerHTML = `
+                    <td class="p-3 font-medium text-gray-800">${b ? escapeHtml(b.title) : '?'}</td>
+                    <td class="p-3 text-gray-600">${escapeHtml(l.user)}</td>
+                    <td class="p-3 text-red-500 font-mono text-xs">${escapeHtml(l.dueDate)}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="checkReturn(${l.id})"
+                                class="bg-white border border-green-500 text-green-600 hover:bg-green-500 hover:text-white text-xs px-3 py-1 rounded-full transition font-bold shadow-sm">
+                            <i class="fas fa-check"></i> Devolver
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    }
+
+    let tempReturnId = null;
+
+    window.checkReturn = function (lid) {
+        const loan = loans.find(l => l.id === lid);
+        if (!loan) {
+            alert("Préstamo no encontrado.");
+            return;
+        }
+
+        const simDate = document.getElementById('currentDateSim').value;
+        if (!simDate) {
+            alert("Defina una fecha simulada primero.");
+            return;
+        }
+
+        const exp = new Date(loan.dueDate);
+        const act = new Date(simDate);
+        const diff = Math.ceil((act - exp) / (1000 * 60 * 60 * 24));
+
+        if (diff > 0) {
+            tempReturnId = lid;
+            document.getElementById('modalExpected').innerText = loan.dueDate;
+            document.getElementById('modalActual').innerText = simDate;
+            document.getElementById('modalDays').innerText = diff;
+            document.getElementById('modalTotal').innerText = `$${(diff * FINE_VAL).toLocaleString()}`;
+            document.getElementById('fineModal').classList.remove('hidden');
+        } else {
+            if (confirm("¿Confirmar devolución sin multas?")) {
+                processReturn(lid);
+            }
+        }
+    }
+
+    window.closeModal = function () {
+        document.getElementById('fineModal').classList.add('hidden');
+        if (tempReturnId) processReturn(tempReturnId);
+    }
+
+    function processReturn(lid) {
+        const lIdx = loans.findIndex(l => l.id === lid);
+        if (lIdx === -1) return;
+
+        const bIdx = books.findIndex(b => b.id === loans[lIdx].bookId);
+        if (bIdx !== -1) {
+            books[bIdx].status = 'Disponible';
+            saveBooks();
+        }
+        loans.splice(lIdx, 1);
+        tempReturnId = null;
+        renderTable();
+        renderInventory();
+    }
+</script>
+
+</body>
+</html>
