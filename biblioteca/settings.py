@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-(65fnbi1&!@mxn*%i-%2pfyf2&o^-@m(zaf7!4^e$zp*m85^r-'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -57,7 +57,7 @@ ROOT_URLCONF = 'biblioteca.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"],  # <<< ESTA LÍNEA ES CLAVE
+        'DIRS': [BASE_DIR / "templates"],  
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

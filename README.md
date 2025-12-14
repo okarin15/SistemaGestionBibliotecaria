@@ -1,68 +1,87 @@
 # Sistema de Gestión Bibliotecaria (SGB)
 
-Prototipo de software diseñado para la modernización de los procesos de préstamo y control de inventario en bibliotecas. Este proyecto fue desarrollado como parte de la **Evaluación 3 de Ingeniería de Software**, enfocándose en una arquitectura escalable, segura y eficiente.
+**Versión:** 1.0.0 - Release Candidate
+**Evaluación:** Ingeniería de Software - Entrega Final
 
-## 🚀 Descripción del Proyecto
+Sistema integral para la administración de préstamos, inventario y usuarios de una biblioteca comunitaria. Desarrollado bajo estándares de seguridad OWASP Top 10, cumplimiento normativo ISO/IEC 27000 y arquitectura MVT de Django.
 
-El **SGB** es una aplicación web basada en el patrón **MVT (Modelo-Vista-Template)** que permite a los administradores gestionar el ciclo de vida de los recursos bibliográficos. El sistema soluciona la problemática de la gestión manual, ofreciendo trazabilidad en los préstamos y una base de datos normalizada.
+---
 
-### Funcionalidades Principales
-- **Gestión de Inventario:** Registro de Libros con vinculación a Autores (Relación 1:N).
-- **Control de Autores:** Base de datos independiente para autores, evitando redundancia.
-- **Flujo de Préstamos:** Solicitud, aprobación y seguimiento de devoluciones.
-- **Interfaz Responsiva:** Diseño adaptativo utilizando **Bootstrap 5**.
-- **Seguridad:** Protección contra ataques CSRF e Inyección SQL (OWASP).
+## Características Principales
 
-## 🛠️ Tecnologías Utilizadas
+* **Gestión de Préstamos:** Flujo completo de Solicitud, Aprobación, Préstamo y Devolución.
+* **Cálculo Automatizado de Multas:** Algoritmo que detecta retrasos en tiempo real y aplica sanciones monetarias ($1.000 CLP/día).
+* **Seguridad Endurecida (Hardening):**
+    * Validación de entrada robusta mediante Django Forms (Mitigación OWASP Injection).
+    * Protección CSRF y Decoradores de control de acceso (@login_required).
+* **Experiencia de Usuario (UX):** Alertas visuales con etiquetas de estado para gestión de deudas.
 
-Este proyecto ha sido construido utilizando un stack tecnológico moderno y orientado a la nube (SaaS):
+---
 
-* **Backend:** Python 3.10+, Django Framework 4.x
-* **Frontend:** HTML5, CSS3, Bootstrap 5
-* **Base de Datos:** SQLite (Entorno de desarrollo)
-* **Control de Versiones:** Git & GitHub
-* **Editor de Código:** Visual Studio Code
+## Stack Tecnológico
 
-## ⚙️ Instalación y Despliegue Local
+* **Backend:** Python 3.10+ / Django 5.x
+* **Frontend:** Bootstrap 5 + Tailwind CSS (Componentes dinámicos).
+* **Base de Datos:** SQLite (Desarrollo) / PostgreSQL (Producción).
+* **Testing:** Unittest (Pruebas automatizadas de lógica de negocio).
 
-Para ejecutar este proyecto en tu máquina local, sigue estos pasos:
+---
+
+## Guía de Instalación y Ejecución
+
+Sigue estos pasos para desplegar el proyecto en local:
 
 1.  **Clonar el repositorio:**
-    ```bash
-    git clone [https://github.com/TU_USUARIO/NOMBRE_DEL_REPO.git](https://github.com/TU_USUARIO/NOMBRE_DEL_REPO.git)
-    cd NOMBRE_DEL_REPO
-    ```
+    git clone [TU_LINK_DEL_REPO_AQUI]
+    cd [NOMBRE_DE_LA_CARPETA]
 
-2.  **Crear y activar un entorno virtual (Opcional pero recomendado):**
-    ```bash
+2.  **Crear y activar entorno virtual:**
     python -m venv venv
-    source venv/bin/activate  # En Windows: venv\Scripts\activate
-    ```
+    
+    # En Windows:
+    venv\Scripts\activate
+    
+    # En Mac/Linux:
+    source venv/bin/activate
 
 3.  **Instalar dependencias:**
-    ```bash
-    pip install django
-    ```
+    pip install -r requirements.txt
 
-4.  **Ejecutar migraciones de base de datos:**
-    ```bash
+4.  **Aplicar migraciones:**
     python manage.py migrate
-    ```
 
-5.  **Iniciar el servidor de desarrollo:**
-    ```bash
-    python manage.py runserver
-    ```
+5.  **IMPORTANTE: Cargar Datos de Prueba (Script de Población):**
+    Este script crea automáticamente los usuarios, libros y genera un escenario de multa (préstamo atrasado) para validar la lógica de negocio sin esperar días reales.
+    
+    python populate.py
 
-6.  **Acceder al sistema:**
-    Abre tu navegador en: `http://127.0.0.1:8000/`
+6.  **Iniciar el servidor:**
+    (Usamos --insecure para forzar la carga de estilos estáticos si DEBUG=False)
+    
+    python manage.py runserver --insecure
 
-## 📄 Estructura del Proyecto
+---
 
-- `biblioteca/`: Configuración principal del proyecto (Settings, URLs centrales).
-- `prestamos/`: Aplicación central que contiene la lógica de negocio (Models, Views).
-- `templates/`: Archivos HTML y plantillas base (Frontend).
-- `manage.py`: Utilidad de línea de comandos de Django.
+## Credenciales de Acceso
 
-## 👥 Autor
-Desarrollado para la asignatura de Ingeniería de Software.
+El script populate.py genera las siguientes cuentas para pruebas:
+
+| Rol | Usuario | Contraseña | Funcionalidad a Probar |
+| :--- | :--- | :--- | :--- |
+| Bibliotecario | admin | biblioteca1234 | Aprobar solicitudes, Registrar devoluciones (ver multas). |
+| Socio | okarin | biblioteca1234 | Solicitar libros, Ver historial y etiquetas de atraso. |
+
+---
+
+## Ejecución de Pruebas Automatizadas (QA)
+
+Para validar la integridad del cálculo de multas y la lógica de seguridad, ejecutar el suite de tests:
+
+python manage.py test prestamos
+
+Resultado esperado: "Ran 1 test in 0.0xxs ... OK"
+
+---
+
+## Licencia y Normativa
+Proyecto académico desarrollado conforme a los criterios de evaluación de Ingeniería de Software.
